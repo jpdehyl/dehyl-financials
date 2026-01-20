@@ -1,0 +1,484 @@
+import type {
+  Project,
+  ProjectWithTotals,
+  Invoice,
+  InvoiceWithSuggestions,
+  Bill,
+  ClientMapping,
+  DashboardData,
+  ConnectionStatus,
+} from "@/types";
+
+// ===========================================
+// Mock Projects
+// ===========================================
+export const mockProjects: ProjectWithTotals[] = [
+  {
+    id: "p1",
+    driveId: "drive-abc123",
+    code: "2601007",
+    clientCode: "CD",
+    clientName: "Certified Demolition",
+    description: "PetroCan Kamloops",
+    status: "active",
+    estimateAmount: 45000,
+    estimateDriveId: "drive-est-123",
+    hasPBS: true,
+    createdAt: new Date("2026-01-07"),
+    updatedAt: new Date("2026-01-18"),
+    totals: {
+      invoiced: 25000,
+      paid: 15000,
+      outstanding: 10000,
+      costs: 8500,
+      profit: 6500,
+    },
+  },
+  {
+    id: "p2",
+    driveId: "drive-def456",
+    code: "2601006",
+    clientCode: "ADR",
+    clientName: "ADR Construction",
+    description: "Unit 43 Purcell",
+    status: "active",
+    estimateAmount: 28000,
+    estimateDriveId: "drive-est-456",
+    hasPBS: true,
+    createdAt: new Date("2026-01-06"),
+    updatedAt: new Date("2026-01-17"),
+    totals: {
+      invoiced: 28000,
+      paid: 28000,
+      outstanding: 0,
+      costs: 12000,
+      profit: 16000,
+    },
+  },
+  {
+    id: "p3",
+    driveId: "drive-ghi789",
+    code: "2501003",
+    clientCode: "R&S",
+    clientName: "Russell & Sons",
+    description: "Wesley Place",
+    status: "active",
+    estimateAmount: 12500,
+    estimateDriveId: null,
+    hasPBS: false,
+    createdAt: new Date("2025-12-15"),
+    updatedAt: new Date("2026-01-15"),
+    totals: {
+      invoiced: 8500,
+      paid: 5000,
+      outstanding: 3500,
+      costs: 4200,
+      profit: 800,
+    },
+  },
+  {
+    id: "p4",
+    driveId: "drive-jkl012",
+    code: "2601008",
+    clientCode: "CD",
+    clientName: "Certified Demolition",
+    description: "Burnaby Heights Demo",
+    status: "active",
+    estimateAmount: null,
+    estimateDriveId: null,
+    hasPBS: false,
+    createdAt: new Date("2026-01-08"),
+    updatedAt: new Date("2026-01-19"),
+    totals: {
+      invoiced: 0,
+      paid: 0,
+      outstanding: 0,
+      costs: 0,
+      profit: 0,
+    },
+  },
+  {
+    id: "p5",
+    driveId: "drive-mno345",
+    code: "2512045",
+    clientCode: "ADR",
+    clientName: "ADR Construction",
+    description: "Vancouver House Restoration",
+    status: "closed",
+    estimateAmount: 85000,
+    estimateDriveId: "drive-est-345",
+    hasPBS: true,
+    createdAt: new Date("2025-12-01"),
+    updatedAt: new Date("2026-01-10"),
+    totals: {
+      invoiced: 85000,
+      paid: 85000,
+      outstanding: 0,
+      costs: 52000,
+      profit: 33000,
+    },
+  },
+  {
+    id: "p6",
+    driveId: "drive-pqr678",
+    code: "2601009",
+    clientCode: "R&S",
+    clientName: "Russell & Sons",
+    description: "Commercial Demo Langley",
+    status: "active",
+    estimateAmount: 38000,
+    estimateDriveId: "drive-est-678",
+    hasPBS: true,
+    createdAt: new Date("2026-01-09"),
+    updatedAt: new Date("2026-01-18"),
+    totals: {
+      invoiced: 15000,
+      paid: 0,
+      outstanding: 15000,
+      costs: 6500,
+      profit: -6500,
+    },
+  },
+  {
+    id: "p7",
+    driveId: "drive-stu901",
+    code: "2601010",
+    clientCode: "CD",
+    clientName: "Certified Demolition",
+    description: "Surrey Industrial",
+    status: "active",
+    estimateAmount: 62000,
+    estimateDriveId: "drive-est-901",
+    hasPBS: true,
+    createdAt: new Date("2026-01-10"),
+    updatedAt: new Date("2026-01-19"),
+    totals: {
+      invoiced: 31000,
+      paid: 15500,
+      outstanding: 15500,
+      costs: 18000,
+      profit: -2500,
+    },
+  },
+];
+
+// ===========================================
+// Mock Invoices
+// ===========================================
+export const mockInvoices: InvoiceWithSuggestions[] = [
+  {
+    id: "inv1",
+    qbId: "qb-inv-1",
+    invoiceNumber: "DC0359",
+    clientName: "Russell & Sons Enterprises Inc.",
+    amount: 383.25,
+    balance: 383.25,
+    issueDate: new Date("2025-12-22"),
+    dueDate: new Date("2026-01-06"),
+    status: "overdue",
+    projectId: "p3",
+    matchConfidence: "high",
+    memo: "Wesley Place: 20,21 dec, 2025",
+    syncedAt: new Date("2026-01-19"),
+    matchSuggestions: [],
+  },
+  {
+    id: "inv2",
+    qbId: "qb-inv-2",
+    invoiceNumber: "DC0360",
+    clientName: "Certified Demolition Inc.",
+    amount: 10000,
+    balance: 10000,
+    issueDate: new Date("2026-01-10"),
+    dueDate: new Date("2026-01-25"),
+    status: "sent",
+    projectId: "p1",
+    matchConfidence: "high",
+    memo: "PetroCan Kamloops - Progress billing #1",
+    syncedAt: new Date("2026-01-19"),
+    matchSuggestions: [],
+  },
+  {
+    id: "inv3",
+    qbId: "qb-inv-3",
+    invoiceNumber: "DC0361",
+    clientName: "Russell & Sons Enterprises Inc.",
+    amount: 15000,
+    balance: 15000,
+    issueDate: new Date("2026-01-12"),
+    dueDate: new Date("2026-01-27"),
+    status: "sent",
+    projectId: "p6",
+    matchConfidence: "medium",
+    memo: "Commercial Demo Langley - Milestone 1",
+    syncedAt: new Date("2026-01-19"),
+    matchSuggestions: [],
+  },
+  {
+    id: "inv4",
+    qbId: "qb-inv-4",
+    invoiceNumber: "DC0362",
+    clientName: "Certified Demolition Inc.",
+    amount: 15500,
+    balance: 15500,
+    issueDate: new Date("2026-01-15"),
+    dueDate: new Date("2026-01-30"),
+    status: "sent",
+    projectId: "p7",
+    matchConfidence: "high",
+    memo: "Surrey Industrial - Phase 1",
+    syncedAt: new Date("2026-01-19"),
+    matchSuggestions: [],
+  },
+  {
+    id: "inv5",
+    qbId: "qb-inv-5",
+    invoiceNumber: "DC0358",
+    clientName: "ADR Construction",
+    amount: 5000,
+    balance: 5000,
+    issueDate: new Date("2025-12-15"),
+    dueDate: new Date("2025-12-30"),
+    status: "overdue",
+    projectId: null,
+    matchConfidence: null,
+    memo: "Misc work - December",
+    syncedAt: new Date("2026-01-19"),
+    matchSuggestions: [
+      {
+        projectId: "p2",
+        projectCode: "2601006",
+        confidence: "medium",
+        reason: "Client name match",
+      },
+    ],
+  },
+  {
+    id: "inv6",
+    qbId: "qb-inv-6",
+    invoiceNumber: "DC0363",
+    clientName: "Russell & Sons Enterprises Inc.",
+    amount: 3116.75,
+    balance: 3116.75,
+    issueDate: new Date("2026-01-05"),
+    dueDate: new Date("2026-01-20"),
+    status: "sent",
+    projectId: "p3",
+    matchConfidence: "high",
+    memo: "Wesley Place - Final",
+    syncedAt: new Date("2026-01-19"),
+    matchSuggestions: [],
+  },
+];
+
+// ===========================================
+// Mock Bills
+// ===========================================
+export const mockBills: Bill[] = [
+  {
+    id: "bill1",
+    qbId: "qb-bill-1",
+    vendorName: "Waste Management BC",
+    amount: 1500,
+    balance: 1500,
+    billDate: new Date("2026-01-10"),
+    dueDate: new Date("2026-01-25"),
+    status: "open",
+    projectId: "p1",
+    memo: "Disposal fees - PetroCan",
+    syncedAt: new Date("2026-01-19"),
+  },
+  {
+    id: "bill2",
+    qbId: "qb-bill-2",
+    vendorName: "United Rentals",
+    amount: 2800,
+    balance: 2800,
+    billDate: new Date("2026-01-08"),
+    dueDate: new Date("2026-01-23"),
+    status: "open",
+    projectId: "p7",
+    memo: "Excavator rental - Surrey",
+    syncedAt: new Date("2026-01-19"),
+  },
+  {
+    id: "bill3",
+    qbId: "qb-bill-3",
+    vendorName: "Home Depot",
+    amount: 450.75,
+    balance: 450.75,
+    billDate: new Date("2026-01-12"),
+    dueDate: new Date("2026-01-27"),
+    status: "open",
+    projectId: null,
+    memo: "Safety supplies",
+    syncedAt: new Date("2026-01-19"),
+  },
+  {
+    id: "bill4",
+    qbId: "qb-bill-4",
+    vendorName: "BC Hydro",
+    amount: 385.5,
+    balance: 385.5,
+    billDate: new Date("2026-01-05"),
+    dueDate: new Date("2026-01-20"),
+    status: "open",
+    projectId: null,
+    memo: "Monthly power - Shop",
+    syncedAt: new Date("2026-01-19"),
+  },
+  {
+    id: "bill5",
+    qbId: "qb-bill-5",
+    vendorName: "Finning CAT",
+    amount: 1250,
+    balance: 1250,
+    billDate: new Date("2025-12-28"),
+    dueDate: new Date("2026-01-12"),
+    status: "overdue",
+    projectId: "p6",
+    memo: "Equipment repair",
+    syncedAt: new Date("2026-01-19"),
+  },
+  {
+    id: "bill6",
+    qbId: "qb-bill-6",
+    vendorName: "WorkSafeBC",
+    amount: 2100,
+    balance: 2100,
+    billDate: new Date("2026-01-15"),
+    dueDate: new Date("2026-02-15"),
+    status: "open",
+    projectId: null,
+    memo: "Q1 2026 Premium",
+    syncedAt: new Date("2026-01-19"),
+  },
+];
+
+// ===========================================
+// Mock Client Mappings
+// ===========================================
+export const mockClientMappings: ClientMapping[] = [
+  {
+    id: "cm1",
+    code: "CD",
+    qbCustomerName: "Certified Demolition Inc.",
+    displayName: "Certified Demolition",
+    aliases: ["CertDemo", "Cert Demolition"],
+  },
+  {
+    id: "cm2",
+    code: "ADR",
+    qbCustomerName: "ADR Construction",
+    displayName: "ADR Construction",
+    aliases: ["ADR"],
+  },
+  {
+    id: "cm3",
+    code: "R&S",
+    qbCustomerName: "Russell & Sons Enterprises Inc.",
+    displayName: "Russell & Sons",
+    aliases: ["Russell", "R&S Enterprises"],
+  },
+];
+
+// ===========================================
+// Mock Dashboard Data
+// ===========================================
+export const mockDashboardData: DashboardData = {
+  kpis: {
+    totalReceivables: 49000,
+    totalPayables: 8486.25,
+    netPosition: 40513.75,
+    activeProjects: 6,
+    overdueInvoices: 2,
+    overdueAmount: 5383.25,
+    billsDueThisWeek: 3,
+    billsDueAmount: 4685.5,
+  },
+  alerts: [
+    {
+      type: "overdue_invoice",
+      count: 2,
+      total: 5383.25,
+    },
+    {
+      type: "bills_due_soon",
+      count: 3,
+      total: 4685.5,
+    },
+    {
+      type: "missing_estimate",
+      count: 1,
+      projects: ["2601008"],
+    },
+    {
+      type: "missing_pbs",
+      count: 2,
+      projects: ["2501003", "2601008"],
+    },
+  ],
+  recentActivity: [
+    {
+      type: "payment_received",
+      description: "Payment from ADR Construction",
+      amount: 28000,
+      date: new Date("2026-01-17"),
+    },
+    {
+      type: "invoice_sent",
+      description: "Invoice DC0362 to Certified Demolition",
+      amount: 15500,
+      date: new Date("2026-01-15"),
+    },
+    {
+      type: "project_created",
+      description: "New project: Surrey Industrial",
+      date: new Date("2026-01-10"),
+    },
+    {
+      type: "bill_paid",
+      description: "Paid United Rentals",
+      amount: 1850,
+      date: new Date("2026-01-08"),
+    },
+  ],
+  lastSyncedAt: new Date("2026-01-19T10:30:00"),
+};
+
+// ===========================================
+// Mock Connection Status
+// ===========================================
+export const mockConnectionStatus: ConnectionStatus = {
+  quickbooks: {
+    connected: false,
+    companyName: undefined,
+    lastSyncedAt: undefined,
+  },
+  googleDrive: {
+    connected: false,
+    email: undefined,
+    lastSyncedAt: undefined,
+  },
+};
+
+// ===========================================
+// Helper to get project by ID
+// ===========================================
+export function getProjectById(id: string): ProjectWithTotals | undefined {
+  return mockProjects.find((p) => p.id === id);
+}
+
+// ===========================================
+// Helper to get invoices by project ID
+// ===========================================
+export function getInvoicesByProjectId(projectId: string): Invoice[] {
+  return mockInvoices.filter((inv) => inv.projectId === projectId);
+}
+
+// ===========================================
+// Helper to get bills by project ID
+// ===========================================
+export function getBillsByProjectId(projectId: string): Bill[] {
+  return mockBills.filter((bill) => bill.projectId === projectId);
+}
