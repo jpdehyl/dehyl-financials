@@ -87,7 +87,7 @@ export default function SettingsPage() {
       } else {
         setSyncMessage(data.error || "Sync failed");
       }
-    } catch (error) {
+    } catch (_error) {
       setSyncMessage("Sync failed - network error");
     }
     setIsSyncingQB(false);
@@ -121,7 +121,7 @@ export default function SettingsPage() {
       } else {
         setSyncMessage(data.error || "Sync failed");
       }
-    } catch (error) {
+    } catch (_error) {
       setSyncMessage("Sync failed - network error");
     }
     setIsSyncingDrive(false);

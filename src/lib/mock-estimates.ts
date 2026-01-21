@@ -1,4 +1,4 @@
-import type { Estimate, EstimateLineItem, EstimateWithLineItems, EstimateCategory } from "@/types";
+import type { Estimate, EstimateLineItem, EstimateWithLineItems } from "@/types";
 
 // Mock estimates data
 export const mockEstimates: Estimate[] = [

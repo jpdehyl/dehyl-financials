@@ -1,8 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
-import { ArrowUpDown, ChevronRight, ExternalLink, MoreHorizontal } from "lucide-react";
+import { ArrowUpDown, ExternalLink, MoreHorizontal } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -19,7 +18,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { cn, formatCurrency, formatDate, getDaysUntilDue } from "@/lib/utils";
+import { formatCurrency, formatDate, getDaysUntilDue } from "@/lib/utils";
 import type { Bid } from "@/types";
 
 interface BidsTableProps {

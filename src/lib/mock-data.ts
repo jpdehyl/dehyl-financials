@@ -1,5 +1,4 @@
 import type {
-  Project,
   ProjectWithTotals,
   Invoice,
   InvoiceWithSuggestions,

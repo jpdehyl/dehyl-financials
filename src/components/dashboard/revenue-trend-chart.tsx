@@ -91,7 +91,7 @@ export function generateRevenueTrendData() {
     "Aug", "Sep", "Oct", "Nov", "Dec", "Jan"
   ];
 
-  return months.map((month, i) => {
+  return months.map((month) => {
     const baseInvoiced = 35000 + Math.random() * 30000;
     const basePaid = baseInvoiced * (0.7 + Math.random() * 0.25);
     return {
