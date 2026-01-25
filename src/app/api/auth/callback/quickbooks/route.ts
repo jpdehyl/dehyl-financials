@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const code = searchParams.get("code");
-  const state = searchParams.get("state");
+  const _state = searchParams.get("state"); // Reserved for CSRF validation
   const realmId = searchParams.get("realmId");
   const error = searchParams.get("error");
 

@@ -5,7 +5,6 @@ import Link from "next/link";
 import {
   ArrowUpDown,
   ChevronRight,
-  ExternalLink,
   AlertTriangle,
 } from "lucide-react";
 import {

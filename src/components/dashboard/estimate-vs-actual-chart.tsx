@@ -17,7 +17,6 @@ import {
   ResponsiveContainer,
   Legend,
   Cell,
-  ReferenceLine,
 } from "recharts";
 import { formatCurrency } from "@/lib/utils";
 import type { ProjectWithTotals } from "@/types";

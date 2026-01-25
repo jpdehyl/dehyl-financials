@@ -63,7 +63,7 @@ function calculateMatchScore(
   clientMappings: ClientMapping[]
 ): MatchResult {
   let score = 0;
-  let reasons: string[] = [];
+  const reasons: string[] = [];
 
   const invoiceMemo = (invoice.memo || "").toLowerCase();
   const invoiceClient = invoice.clientName.toLowerCase();

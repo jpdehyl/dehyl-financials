@@ -40,7 +40,7 @@ const CATEGORIES: { value: EstimateCategory; label: string }[] = [
 const UNITS = ["each", "hr", "day", "sqft", "lft", "cuyd", "load", "lump sum"];
 
 export function LineItemEditor({ lineItems, onChange, readOnly = false }: LineItemEditorProps) {
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [_editingId, setEditingId] = useState<string | null>(null);
 
   const addLineItem = () => {
     const newItem: EstimateLineItem = {
