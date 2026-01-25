@@ -76,7 +76,15 @@ export async function GET() {
       status: proj.status as "active" | "closed",
       estimateAmount: proj.estimate_amount ? Number(proj.estimate_amount) : null,
       estimateDriveId: proj.estimate_drive_id,
+      hasEstimate: !!proj.estimate_drive_id || !!proj.estimate_amount,
       hasPBS: proj.has_pbs || false,
+      // Quote generator fields
+      projectType: proj.project_type || null,
+      squareFootage: proj.square_footage || null,
+      finalCost: proj.final_cost ? Number(proj.final_cost) : null,
+      finalRevenue: proj.final_revenue ? Number(proj.final_revenue) : null,
+      profitMargin: proj.profit_margin ? Number(proj.profit_margin) : null,
+      location: proj.location || null,
       createdAt: new Date(proj.created_at),
       updatedAt: new Date(proj.updated_at),
       totals: {
