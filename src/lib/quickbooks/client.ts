@@ -11,7 +11,9 @@ interface QBConfig {
   environment: "sandbox" | "production";
 }
 
-interface QBTokens {
+type TokenRefreshCallback = (tokens: QBTokens) => Promise<void>;
+
+export interface QBTokens {
   accessToken: string;
   refreshToken: string;
   expiresAt: Date;
@@ -21,6 +23,7 @@ interface QBTokens {
 export class QuickBooksClient {
   private config: QBConfig;
   private tokens: QBTokens | null = null;
+  private onTokenRefresh: TokenRefreshCallback | null = null;
 
   constructor(config?: Partial<QBConfig>) {
     this.config = {
@@ -113,6 +116,12 @@ export class QuickBooksClient {
 
     if (!response.ok) {
       const error = await response.text();
+      // Check for invalid_grant which means the refresh token has expired or been revoked
+      if (error.includes("invalid_grant")) {
+        throw new Error(
+          "QuickBooks session expired. Please reconnect QuickBooks in Settings."
+        );
+      }
       throw new Error(`Failed to refresh token: ${error}`);
     }
 
@@ -125,12 +134,22 @@ export class QuickBooksClient {
       expiresAt: new Date(Date.now() + data.expires_in * 1000),
     };
 
+    // Persist refreshed tokens if callback is set
+    if (this.onTokenRefresh) {
+      await this.onTokenRefresh(this.tokens);
+    }
+
     return this.tokens;
   }
 
   // Set tokens (e.g., from database)
   setTokens(tokens: QBTokens) {
     this.tokens = tokens;
+  }
+
+  // Set callback for when tokens are refreshed (for persistence)
+  setOnTokenRefresh(callback: TokenRefreshCallback) {
+    this.onTokenRefresh = callback;
   }
 
   // Make authenticated API request

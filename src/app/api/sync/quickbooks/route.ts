@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { qbClient } from "@/lib/quickbooks/client";
+import { qbClient, QBTokens } from "@/lib/quickbooks/client";
 import { createClient } from "@/lib/supabase/server";
 
 interface QBInvoice {
@@ -59,6 +59,22 @@ export async function POST() {
       refreshToken: tokenData.refresh_token,
       expiresAt: new Date(tokenData.expires_at),
       realmId: tokenData.realm_id,
+    });
+
+    // Set up callback to persist refreshed tokens
+    // QuickBooks uses rotating refresh tokens, so we must save new tokens after each refresh
+    qbClient.setOnTokenRefresh(async (tokens: QBTokens) => {
+      const { error } = await supabase.from("oauth_tokens").update({
+        access_token: tokens.accessToken,
+        refresh_token: tokens.refreshToken,
+        expires_at: tokens.expiresAt.toISOString(),
+      }).eq("provider", "quickbooks");
+
+      if (error) {
+        console.error("Failed to persist refreshed QuickBooks tokens:", error);
+        throw new Error("Failed to save refreshed tokens");
+      }
+      console.log("QuickBooks tokens refreshed and persisted successfully");
     });
 
     // Sync invoices
