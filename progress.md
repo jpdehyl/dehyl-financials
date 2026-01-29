@@ -31,8 +31,8 @@
 ## Phase 4: AI Integration
 
 - [x] **US-010**: Add AI Dashboard Generation Endpoint
-- [ ] **US-011**: Streaming Dashboard Generation UI
-- [ ] **US-012**: Natural Language Dashboard Queries
+- [x] **US-011**: Streaming Dashboard Generation UI
+- [x] **US-012**: Natural Language Dashboard Queries
 
 ---
 
