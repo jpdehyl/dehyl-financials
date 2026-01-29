@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { Header } from "@/components/layout/header";
 import {
-  KPIGrid,
   AlertsPanel,
   ActivityFeed,
   QuickActions,
@@ -17,11 +16,80 @@ import { useAppStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import type { DashboardData, ProjectWithTotals, Bid } from "@/types";
 import { Skeleton } from "@/components/ui/skeleton";
+import { JsonRenderer, type Dashboard } from "@/lib/json-render/renderer";
 
 interface RevenueData {
   months: RevenueMonthData[];
   totals: RevenueTotals;
   message?: string;
+}
+
+/**
+ * Convert dashboard KPI data to json-render Dashboard format
+ */
+function createDashboardJson(kpis: {
+  totalReceivables: number;
+  totalPayables: number;
+  netPosition: number;
+  activeProjects: number;
+  overdueInvoices: number;
+  overdueAmount: number;
+  billsDueThisWeek: number;
+  billsDueAmount: number;
+}): Dashboard {
+  return {
+    version: 1,
+    layout: [
+      {
+        component: "grid",
+        props: { columns: 4, gap: "md" },
+        children: [
+          {
+            component: "kpi-card",
+            props: {
+              title: "Total Receivables",
+              value: kpis.totalReceivables,
+              format: "currency",
+              icon: "trending-up",
+              variant: "success",
+              subtitle: `${kpis.overdueInvoices} overdue`,
+            },
+          },
+          {
+            component: "kpi-card",
+            props: {
+              title: "Total Payables",
+              value: kpis.totalPayables,
+              format: "currency",
+              icon: "trending-down",
+              variant: "danger",
+              subtitle: `${kpis.billsDueThisWeek} due this week`,
+            },
+          },
+          {
+            component: "kpi-card",
+            props: {
+              title: "Net Position",
+              value: kpis.netPosition,
+              format: "currency",
+              icon: "dollar-sign",
+              variant: kpis.netPosition >= 0 ? "success" : "danger",
+            },
+          },
+          {
+            component: "kpi-card",
+            props: {
+              title: "Active Projects",
+              value: kpis.activeProjects,
+              format: "number",
+              icon: "folder",
+              variant: "default",
+            },
+          },
+        ],
+      },
+    ],
+  };
 }
 
 export default function DashboardPage() {
@@ -131,6 +199,9 @@ export default function DashboardPage() {
     recentActivity: [],
   };
 
+  // Create json-render Dashboard JSON for KPIs
+  const kpiDashboard = createDashboardJson(kpis);
+
   return (
     <div className={cn(
       "transition-all duration-300",
@@ -141,8 +212,8 @@ export default function DashboardPage() {
         description="Financial overview for DeHyl Constructors"
       />
       <div className="p-4 md:p-6 space-y-6">
-        {/* KPI Cards */}
-        <KPIGrid kpis={kpis} />
+        {/* KPI Cards - now using JsonRenderer */}
+        <JsonRenderer dashboard={kpiDashboard} />
 
         {/* Charts Row */}
         <div className="grid gap-6 lg:grid-cols-2">

@@ -13,7 +13,7 @@
 ## Phase 1: Foundation
 
 - [x] **US-001**: Create JSON-Render Demo Page
-- [ ] **US-002**: Add Dashboard JSON Editor
+- [x] **US-002**: Add Dashboard JSON Editor
 - [ ] **US-003**: Integrate JsonRenderer into Main Dashboard
 
 ## Phase 2: API Integration
