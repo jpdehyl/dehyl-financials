@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Header } from "@/components/layout/header";
 import {
   AlertsPanel,
@@ -10,6 +10,7 @@ import {
   EstimateVsActualChart,
   BidConversionChart,
   ClientPerformance,
+  PresetSelector,
 } from "@/components/dashboard";
 import type { RevenueMonthData, RevenueTotals } from "@/components/dashboard";
 import { useAppStore } from "@/lib/store";
@@ -17,6 +18,13 @@ import { cn } from "@/lib/utils";
 import type { DashboardData, ProjectWithTotals, Bid } from "@/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { JsonRenderer, type Dashboard } from "@/lib/json-render/renderer";
+import {
+  type PresetKey,
+  createExecutiveDashboard,
+  createCollectionsDashboard,
+  createProjectManagerDashboard,
+} from "@/lib/json-render/presets";
+import { getDaysOverdue, getDaysUntilDue } from "@/lib/utils";
 
 interface RevenueData {
   months: RevenueMonthData[];
@@ -24,72 +32,12 @@ interface RevenueData {
   message?: string;
 }
 
-/**
- * Convert dashboard KPI data to json-render Dashboard format
- */
-function createDashboardJson(kpis: {
-  totalReceivables: number;
-  totalPayables: number;
-  netPosition: number;
-  activeProjects: number;
-  overdueInvoices: number;
-  overdueAmount: number;
-  billsDueThisWeek: number;
-  billsDueAmount: number;
-}): Dashboard {
-  return {
-    version: 1,
-    layout: [
-      {
-        component: "grid",
-        props: { columns: 4, gap: "md" },
-        children: [
-          {
-            component: "kpi-card",
-            props: {
-              title: "Total Receivables",
-              value: kpis.totalReceivables,
-              format: "currency",
-              icon: "trending-up",
-              variant: "success",
-              subtitle: `${kpis.overdueInvoices} overdue`,
-            },
-          },
-          {
-            component: "kpi-card",
-            props: {
-              title: "Total Payables",
-              value: kpis.totalPayables,
-              format: "currency",
-              icon: "trending-down",
-              variant: "danger",
-              subtitle: `${kpis.billsDueThisWeek} due this week`,
-            },
-          },
-          {
-            component: "kpi-card",
-            props: {
-              title: "Net Position",
-              value: kpis.netPosition,
-              format: "currency",
-              icon: "dollar-sign",
-              variant: kpis.netPosition >= 0 ? "success" : "danger",
-            },
-          },
-          {
-            component: "kpi-card",
-            props: {
-              title: "Active Projects",
-              value: kpis.activeProjects,
-              format: "number",
-              icon: "folder",
-              variant: "default",
-            },
-          },
-        ],
-      },
-    ],
-  };
+interface InvoiceData {
+  id: string;
+  invoice_number: string;
+  client_name: string;
+  balance: number;
+  due_date: string;
 }
 
 export default function DashboardPage() {
@@ -98,9 +46,11 @@ export default function DashboardPage() {
   const [projects, setProjects] = useState<ProjectWithTotals[]>([]);
   const [bids, setBids] = useState<Bid[]>([]);
   const [revenueData, setRevenueData] = useState<RevenueData | null>(null);
+  const [invoices, setInvoices] = useState<InvoiceData[]>([]);
   const [revenueLoading, setRevenueLoading] = useState(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [currentPreset, setCurrentPreset] = useState<PresetKey>("executive");
 
   useEffect(() => {
     async function fetchData() {
@@ -108,11 +58,12 @@ export default function DashboardPage() {
         setLoading(true);
         setRevenueLoading(true);
 
-        const [dashboardRes, projectsRes, bidsRes, revenueRes] = await Promise.all([
+        const [dashboardRes, projectsRes, bidsRes, revenueRes, receivablesRes] = await Promise.all([
           fetch("/api/dashboard"),
           fetch("/api/projects"),
           fetch("/api/bids"),
           fetch("/api/analytics/revenue"),
+          fetch("/api/receivables"),
         ]);
 
         if (!dashboardRes.ok) {
@@ -126,11 +77,13 @@ export default function DashboardPage() {
         const projectsData = await projectsRes.json();
         const bidsData = bidsRes.ok ? await bidsRes.json() : { bids: [] };
         const revenue = revenueRes.ok ? await revenueRes.json() : { months: [], totals: { totalInvoiced: 0, totalCollected: 0, totalOutstanding: 0 } };
+        const receivables = receivablesRes.ok ? await receivablesRes.json() : { invoices: [] };
 
         setDashboardData(dashboard);
         setProjects(projectsData.projects || []);
         setBids(bidsData.bids || []);
         setRevenueData(revenue);
+        setInvoices(receivables.invoices || []);
       } catch (err) {
         console.error("Error fetching dashboard data:", err);
         setError(err instanceof Error ? err.message : "Failed to load data");
@@ -141,6 +94,10 @@ export default function DashboardPage() {
     }
 
     fetchData();
+  }, []);
+
+  const handlePresetChange = useCallback((preset: PresetKey) => {
+    setCurrentPreset(preset);
   }, []);
 
   if (loading) {
@@ -199,8 +156,106 @@ export default function DashboardPage() {
     recentActivity: [],
   };
 
-  // Create json-render Dashboard JSON for KPIs
-  const kpiDashboard = createDashboardJson(kpis);
+  // Calculate aging for collections view
+  const aging = {
+    current: 0,
+    days31_60: 0,
+    days61_90: 0,
+    over90: 0,
+  };
+
+  invoices.forEach((inv) => {
+    const daysOverdue = getDaysOverdue(inv.due_date);
+    const balance = Number(inv.balance);
+
+    if (daysOverdue <= 0) {
+      aging.current += balance;
+    } else if (daysOverdue <= 30) {
+      aging.current += balance;
+    } else if (daysOverdue <= 60) {
+      aging.days31_60 += balance;
+    } else if (daysOverdue <= 90) {
+      aging.days61_90 += balance;
+    } else {
+      aging.over90 += balance;
+    }
+  });
+
+  // Overdue invoices for collections view
+  const overdueInvoicesList = invoices
+    .filter((inv) => getDaysOverdue(inv.due_date) > 0)
+    .sort((a, b) => Number(b.balance) - Number(a.balance))
+    .slice(0, 5)
+    .map((inv) => ({
+      number: inv.invoice_number || "-",
+      client: inv.client_name,
+      amount: Number(inv.balance),
+      dueDate: inv.due_date,
+      status: "Overdue",
+    }));
+
+  // Due soon invoices
+  const dueSoonInvoices = invoices.filter((inv) => {
+    const days = getDaysUntilDue(inv.due_date);
+    return days >= 0 && days <= 7;
+  });
+  const dueSoonAmount = dueSoonInvoices.reduce((sum, inv) => sum + Number(inv.balance), 0);
+
+  // Project stats for project manager view
+  const activeProjectsList = projects.filter((p) => p.status === "active");
+  const totalEstimated = projects.reduce((sum, p) => sum + (p.estimateAmount || 0), 0);
+  const totalInvoiced = projects.reduce((sum, p) => sum + (p.totals?.invoiced || 0), 0);
+  const missingEstimates = projects.filter((p) => p.status === "active" && !p.estimateAmount).length;
+
+  // Generate dashboard JSON based on preset
+  let presetDashboard: Dashboard;
+
+  switch (currentPreset) {
+    case "executive":
+      presetDashboard = createExecutiveDashboard({
+        totalReceivables: kpis.totalReceivables,
+        totalPayables: kpis.totalPayables,
+        netPosition: kpis.netPosition,
+        activeProjects: kpis.activeProjects,
+        overdueInvoices: kpis.overdueInvoices,
+        billsDueThisWeek: kpis.billsDueThisWeek,
+      });
+      break;
+    case "collections":
+      presetDashboard = createCollectionsDashboard({
+        totalReceivables: kpis.totalReceivables,
+        overdueAmount: kpis.overdueAmount,
+        overdueCount: kpis.overdueInvoices,
+        dueSoonAmount,
+        dueSoonCount: dueSoonInvoices.length,
+        aging,
+        topInvoices: overdueInvoicesList,
+      });
+      break;
+    case "project-manager":
+      presetDashboard = createProjectManagerDashboard({
+        activeProjects: kpis.activeProjects,
+        totalEstimated,
+        totalInvoiced,
+        missingEstimates,
+        recentProjects: activeProjectsList.slice(0, 5).map((p) => ({
+          code: p.code,
+          client: p.clientName || p.clientCode || "-",
+          status: p.status,
+          invoiced: p.totals?.invoiced || 0,
+        })),
+      });
+      break;
+    default:
+      presetDashboard = createExecutiveDashboard({
+        totalReceivables: kpis.totalReceivables,
+        totalPayables: kpis.totalPayables,
+        netPosition: kpis.netPosition,
+        activeProjects: kpis.activeProjects,
+        overdueInvoices: kpis.overdueInvoices,
+        billsDueThisWeek: kpis.billsDueThisWeek,
+      });
+  }
 
   return (
     <div className={cn(
@@ -210,43 +265,53 @@ export default function DashboardPage() {
       <Header
         title="Dashboard"
         description="Financial overview for DeHyl Constructors"
+        action={<PresetSelector onPresetChange={handlePresetChange} />}
       />
       <div className="p-4 md:p-6 space-y-6">
-        {/* KPI Cards - now using JsonRenderer */}
-        <JsonRenderer dashboard={kpiDashboard} />
+        {/* Dynamic Dashboard based on preset */}
+        <JsonRenderer dashboard={presetDashboard} />
 
-        {/* Charts Row */}
-        <div className="grid gap-6 lg:grid-cols-2">
-          <RevenueTrendChart
-            data={revenueData?.months || []}
-            totals={revenueData?.totals}
-            loading={revenueLoading}
-            emptyMessage={revenueData?.message}
-          />
-          <EstimateVsActualChart projects={projects} />
-        </div>
+        {/* Show charts only for non-executive views or always for project manager */}
+        {currentPreset !== "executive" && (
+          <>
+            {/* Charts Row */}
+            <div className="grid gap-6 lg:grid-cols-2">
+              <RevenueTrendChart
+                data={revenueData?.months || []}
+                totals={revenueData?.totals}
+                loading={revenueLoading}
+                emptyMessage={revenueData?.message}
+              />
+              <EstimateVsActualChart projects={projects} />
+            </div>
 
-        {/* Bid Conversion Chart */}
-        <BidConversionChart bids={bids} />
+            {/* Bid Conversion Chart */}
+            <BidConversionChart bids={bids} />
+          </>
+        )}
 
-        {/* Client Performance Analytics */}
-        <ClientPerformance />
+        {/* Client Performance - show for project manager */}
+        {currentPreset === "project-manager" && <ClientPerformance />}
 
-        {/* Main content grid */}
-        <div className="grid gap-6 lg:grid-cols-3">
-          {/* Alerts - takes 2 columns on large screens */}
-          <div className="lg:col-span-2">
-            <AlertsPanel alerts={alerts} />
+        {/* Main content grid - show for collections and project-manager */}
+        {currentPreset !== "executive" && (
+          <div className="grid gap-6 lg:grid-cols-3">
+            {/* Alerts - takes 2 columns on large screens */}
+            <div className="lg:col-span-2">
+              <AlertsPanel alerts={alerts} />
+            </div>
+
+            {/* Quick Actions */}
+            <div>
+              <QuickActions />
+            </div>
           </div>
+        )}
 
-          {/* Quick Actions */}
-          <div>
-            <QuickActions />
-          </div>
-        </div>
-
-        {/* Activity Feed */}
-        <ActivityFeed activities={recentActivity} />
+        {/* Activity Feed - show for all except executive */}
+        {currentPreset !== "executive" && (
+          <ActivityFeed activities={recentActivity} />
+        )}
       </div>
     </div>
   );
