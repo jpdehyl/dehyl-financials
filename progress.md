@@ -18,7 +18,7 @@
 
 ## Phase 2: API Integration
 
-- [ ] **US-004**: Create Dashboard JSON API Endpoint
+- [x] **US-004**: Create Dashboard JSON API Endpoint
 - [ ] **US-005**: Add Projects Overview JSON Endpoint
 - [ ] **US-006**: Add Receivables/Payables JSON Endpoints
 
